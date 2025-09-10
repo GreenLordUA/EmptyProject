@@ -10,6 +10,12 @@ export $(grep -E '^(MYSQL_ROOT_PASSWORD|MYSQL_DATABASE|MYSQL_USER|MYSQL_PASSWORD
 
 DB_URL="mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@db:3306/${MYSQL_DATABASE}?charset=utf8mb4"
 
+GITKEEP_PRESENT=0
+if [ -f app/.gitkeep ]; then
+  GITKEEP_PRESENT=1
+  rm -f app/.gitkeep
+fi
+
 if [ -n "$(ls -A app 2>/dev/null)" ]; then
   echo "ERROR: ./app is not empty. Please clean it (even a single .gitignore will block create-project)."
   exit 1
@@ -54,6 +60,10 @@ doctrine:
         prefix: 'App\\Entity'
         alias: App
 YAML
+
+if [ "$GITKEEP_PRESENT" -eq 1 ]; then
+  touch app/.gitkeep
+fi
 
 echo
 echo "✔ Done. Symfony skeleton installed in ./app"
