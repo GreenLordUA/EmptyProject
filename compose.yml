@@ -1,0 +1,44 @@
+services:
+  db:
+    image: mysql:8.4
+    container_name: db
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    command: >
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_0900_ai_ci
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./mysql-init:/docker-entrypoint-initdb.d:ro
+      - ./mysql-conf/my.cnf:/etc/mysql/conf.d/zzz_my.cnf:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"${MYSQL_ROOT_PASSWORD}\" --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  php:
+    build: ./docker/php
+    container_name: php
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    working_dir: /var/www/html
+    volumes:
+      - ./app:/var/www/html:cached
+    environment:
+      SYMFONY_CLI_VERSION: stable
+      COMPOSER_ALLOW_SUPERUSER: 1
+      TZ: Europe/Kyiv
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  db_data:
+  composer_cache:
