@@ -43,8 +43,20 @@ else
   } >> app/.env
 fi
 
-mkdir -p app/config/packages
-cat > app/config/packages/doctrine.yaml <<'YAML'
+DOCTRINE_YAML="app/config/packages/doctrine.yaml"
+
+if [ -f "$DOCTRINE_YAML" ]; then
+  awk '
+    /^ *#server_version/ { print "        server_version: '\''8.4'\''"; next }
+    /identity_generation_preferences:/ { skipblock=1; next }
+    skipblock && /^[^[:space:]]/ { skipblock=0 }  # end of block
+    skipblock { next }
+    { print }
+  ' "$DOCTRINE_YAML" > "${DOCTRINE_YAML}.tmp" && mv "${DOCTRINE_YAML}.tmp" "$DOCTRINE_YAML"
+  echo "✓ Doctrine config normalized for MySQL (server_version=8.4, removed Postgres hints)."
+else
+  mkdir -p app/config/packages
+  cat > "$DOCTRINE_YAML" <<'EOF'
 doctrine:
   dbal:
     url: '%env(resolve:DATABASE_URL)%'
@@ -59,7 +71,9 @@ doctrine:
         dir: '%kernel.project_dir%/src/Entity'
         prefix: 'App\\Entity'
         alias: App
-YAML
+EOF
+  echo "✓ Doctrine config created fresh for MySQL (server_version=8.4)."
+fi
 
 if [ "$GITKEEP_PRESENT" -eq 1 ]; then
   touch app/.gitkeep
